@@ -12,7 +12,7 @@ export interface TicketResponse {
 const BASE_URL = 'http://198.71.58.84:5001/livinkApi/Locations';
 
 const getToken = (): string => {
-  return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJhZG1pbkBsaXZpbmsuY29tIiwibmFtZSI6IkNhcmxvcyBBZG1pbmlzdHJhZG9yIiwianRpIjoiN2UzMzQ4MWYtOGNjMy00NWIxLTg3NGUtNDBiNDQ4NGMzMzlhIiwidXNlcklkIjoiMSIsInRlbmFudElkIjoiMSIsInRlbmFudENvZGUiOiJQVUVCTEEiLCJyb2xJZCI6IjEiLCJyb2xDb2RlIjoiU1VQRVJfQURNSU4iLCJyb2xOYW1lIjoiU3VwZXIgQWRtaW5pc3RyYWRvciIsInBlcm1pc3Npb24iOlsidXNlcnMuY3JlYXRlIiwidXNlcnMucmVhZCIsInVzZXJzLnVwZGF0ZSIsInVzZXJzLmRlbGV0ZSIsInJvbGVzLmNyZWF0ZSIsInJvbGVzLnJlYWQiLCJyb2xlcy51cGRhdGUiLCJyb2xlcy5kZWxldGUiLCJ0ZW5hbnRzLmNyZWF0ZSIsInRlbmFudHMucmVhZCIsInRlbmFudHMudXBkYXRlIiwidGVuYW50cy5kZWxldGUiLCJyZXBvcnRzLnZpZXciLCJyZXBvcnRzLmV4cG9ydCJdLCJleHAiOjE3NzM4NTg3NDQsImlzcyI6Ikxpdmlua0F1dGhTZXJ2aWNlIiwiYXVkIjoiTGl2aW5rTWljcm9zZXJ2aWNlcyJ9.iM0O85emYSsnlSQz5ENGltuAGz29g_ST7x2E78Y17xE";
+  return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJhZG1pbkBsaXZpbmsuY29tIiwibmFtZSI6IkNhcmxvcyBBZG1pbmlzdHJhZG9yIiwianRpIjoiOGY0MmU5MWEtZjBiOC00MDU4LTgyZjYtZjE1MDQxOGY1ZTA0IiwidXNlcklkIjoiMSIsInRlbmFudElkIjoiMSIsInRlbmFudENvZGUiOiJQVUVCTEEiLCJyb2xJZCI6IjEiLCJyb2xDb2RlIjoiU1VQRVJfQURNSU4iLCJyb2xOYW1lIjoiU3VwZXIgQWRtaW5pc3RyYWRvciIsInBlcm1pc3Npb24iOlsidXNlcnMuY3JlYXRlIiwidXNlcnMucmVhZCIsInVzZXJzLnVwZGF0ZSIsInVzZXJzLmRlbGV0ZSIsInJvbGVzLmNyZWF0ZSIsInJvbGVzLnJlYWQiLCJyb2xlcy51cGRhdGUiLCJyb2xlcy5kZWxldGUiLCJ0ZW5hbnRzLmNyZWF0ZSIsInRlbmFudHMucmVhZCIsInRlbmFudHMudXBkYXRlIiwidGVuYW50cy5kZWxldGUiLCJyZXBvcnRzLnZpZXciLCJyZXBvcnRzLmV4cG9ydCJdLCJleHAiOjE3NzM5NDYxOTYsImlzcyI6Ikxpdmlua0F1dGhTZXJ2aWNlIiwiYXVkIjoiTGl2aW5rTWljcm9zZXJ2aWNlcyJ9.829zRVwtli0OSy1CpzjcY_yRSnGBHgufa2T0H4rs4XU";
 };
 
 
@@ -40,6 +40,16 @@ export async function fetchTicketInfraction(): Promise<TicketResponse> {
 }
 
 
+// ==========================
+// REPLACE DE VARIABLES @@
+// ==========================
+export function fillTemplate(template: string, data: Record<string, any>): string {
+  return template.replace(/@@(\w+)/g, (_, key) => {
+    return data[key] ?? '';
+  });
+}
+
+
   //Generador profesional ESC/POS
 // Compatible 58mm y 80mm
  
@@ -47,18 +57,9 @@ export function buildEscPosTicket(rawText: string): string {
   
    let ticket = '';
  const MAX_CHARS = 48; // ancho del ticket
-  // ==========================
-  // ENCABEZADO
-  // ==========================
-/*
-  ticket += '\x1B\x61\x01'; // Centrar
-  ticket += '\x1D\x21\x11'; // Doble tamaño
-  ticket += 'SECRETARÍA DE SEGURIDAD\n';
-  ticket += 'PÚBLICA\n';
-  ticket += '\x1D\x21\x00'; // Tamaño normal
-  ticket += 'DEL ESTADO DE PUEBLA\n';
-  ticket += '--------------------------------\n';
-  */
+
+ // convertir \n texto → salto real
+  rawText = rawText.replace(/\\n/g, '\n');
 
   // Reset impresora
   ticket += '\x1B\x40';
@@ -72,43 +73,65 @@ ticket += '\x1B\x61\x00'; // Alinear izquierda
 const lines = rawText
   .replace(/\r/g, '')
   .split('\n')
-  .map(l => l.trim())
-  .filter(l => l.length > 0);
+  .map(l => l.trim());
 
 for (let line of lines) {
 
-  // Centrar MOVILIDAD SEGURA y Operativo Móvil
-  if (line.includes('MOVILIDAD SEGURA') || line.includes('Operativo Móvil')) {
-    ticket += '\x1B\x61\x00'; // center
-    ticket += '\x1B\x45\x01'; // bold
-    ticket += line + '\n';
-    ticket += '\x1B\x45\x00'; // quitar bold
-    ticket += '\x1B\x61\x00'; // volver a izquierda
-    continue;
+ // ==========================
+// TÍTULO PRINCIPAL (CENTRADO)
+// ==========================
+if (line.includes('BOLETA DE INFRACCIÓN EN MATERIA DE MOVILIDAD Y SEGURIDAD VIAL')) {
+  ticket += '\x1B\x61\x01'; // CENTER
+  ticket += '\x1B\x45\x01'; // bold
+  ticket += 'BOLETA DE INFRACCIÓN EN MATERIA\n';
+  ticket += 'DE MOVILIDAD Y SEGURIDAD VIAL\n';
+  ticket += '\x1B\x45\x00'; // quitar bold
+  ticket += '\x1B\x61\x00'; // volver a izquierda
+  ticket += '\n';
+  continue;
   }
 
-    // BLOQUE DE DATOS VEHÍCULO → solo izquierda
-  if (
-    line.startsWith('FOLIO:') ||
-    line.startsWith('PLACAS:') ||
-    line.startsWith('NIV:') ||
-    line.startsWith('MARCA:') ||
-    line.startsWith('LÍNEA:') ||
-    line.startsWith('TIPO:') ||
-    line.startsWith('AÑO:') ||
-    line.startsWith('COLOR:') ||
-    line.startsWith('ENTIDAD:') ||
-    line.startsWith('SERVICIO:')||
-    line.startsWith('NOMBRE:') ||
-    line.startsWith('ID:') ||
-    line.startsWith('NOMBRE:') ||
-    line.startsWith('DOMICILIO:') ||
-    line.startsWith('NO. DE LICENCIA:') ||
-    line.startsWith('TIPO DE LICENCIA:')
-  ) 
-     
-      
+
+// ==========================
+// OTROS TÍTULOS (IZQUIERDA)
+// ==========================
+if (
+  line.includes('GOBIERNO DEL ESTADO DE PUEBLA') ||
+  line.includes('SECRETARÍA DE MOVILIDAD Y TRANSPORTE')
+) {
   ticket += '\x1B\x61\x00'; // izquierda
+  ticket += '\x1B\x45\x01'; // bold (opcional)
+  ticket += line + '\n';
+  ticket += '\x1B\x45\x00';
+  continue;
+}
+
+  // ==========================
+    // SECCIONES (I, II, III...)
+    // ==========================
+    if (
+      line.startsWith('I.') ||
+      line.startsWith('II.') ||
+      line.startsWith('III.') ||
+      line.startsWith('IV.') ||
+      line.startsWith('V.')
+    ) {
+      ticket += '\n';
+      ticket += '\x1B\x45\x01'; // bold
+      ticket += line ;
+      ticket += '\x1B\x45\x00';
+      continue;
+    }
+    ticket += '\n';  
+  ticket += '\x1B\x61\x00'; // izquierda
+
+    // ==========================
+    // CHECKBOXES
+    // ==========================
+    if (line.startsWith('[x]') || line.startsWith('[]') || line.startsWith('☑') || line.startsWith('☐')) {
+      ticket += line ;
+      continue;
+    }
 
 
   // Wrap automático sin cortar palabras
@@ -120,18 +143,8 @@ for (let line of lines) {
     line = line.substring(slice.length).trim();
   }
 
-  ticket += line + '\n';
+  ticket += line ;
 }
-
-  
-  // ==========================
-  // PIE
-  // ==========================
-  ticket += '\n';
-  ticket += '--------------------------------\n';
-  ticket += '\x1B\x61\x00'; // Centrar
-  ticket += 'DOCUMENTO INFORMATIVO\n';
-
 
   ticket += '\n\n';
 
@@ -162,7 +175,9 @@ function replaceSpecialChars(text: string): string {
 }
 
 
-// Convierte string ESC/POS a array de bytes
+// ==========================
+// STRING → BYTES
+// ==========================
  
 export function stringToBytes(str: string): number[] {
   const bytes: number[] = [];
